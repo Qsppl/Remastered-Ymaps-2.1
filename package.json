@@ -29,5 +29,10 @@
   "engines": {
     "node": "22",
     "npm": "10"
+  },
+  "dependencies": {
+    "@babel/parser": "^7.26.9",
+    "commander": "^13.1.0",
+    "node-fetch": "^3.3.2"
   }
 }
