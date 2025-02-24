@@ -1,0 +1,15 @@
+{
+    "files.eol": "\n",
+    "javascript.format.semicolons": "remove",
+    "typescript.format.semicolons": "remove",
+    "task.allowAutomaticTasks": "on",
+    // windows task manager fix
+    "terminal.integrated.automationProfile.windows": {
+        "path": "C:/Windows/System32/cmd.exe"
+    },
+    "explorer.fileNesting.enabled": true,
+    "explorer.fileNesting.expand": false,
+    "explorer.fileNesting.patterns": {
+        "*.mts": "${capture}.mts, ${capture}.mjs"
+    }
+}
