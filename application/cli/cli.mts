@@ -2,7 +2,7 @@
 
 import { program } from 'commander'
 import data from "../../package.json" with { type: "json" }
-import { ScrapperService } from './scrapper/scrapper.service.mjs'
+import { ScrapperService } from '../scrapper/scrapper.service.mjs'
 
 export async function main() {
     program
