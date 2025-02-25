@@ -1,4 +1,4 @@
-import { Program } from "@babel/types"
+import { type Program } from "@babel/types"
 
 export function extractIIFE(program: Program) {
     if (program.body.length !== 1) return null

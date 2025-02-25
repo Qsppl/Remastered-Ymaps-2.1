@@ -31,8 +31,11 @@
     "npm": "10"
   },
   "dependencies": {
+    "@babel/generator": "^7.26.9",
     "@babel/parser": "^7.26.9",
+    "@types/babel__generator": "^7.6.8",
     "commander": "^13.1.0",
-    "node-fetch": "^3.3.2"
+    "node-fetch": "^3.3.2",
+    "node-fetch-cache": "^5.0.2"
   }
 }
