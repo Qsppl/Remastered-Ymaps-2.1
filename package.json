@@ -29,5 +29,8 @@
   "engines": {
     "node": "22",
     "npm": "10"
+  },
+  "dependencies": {
+    "commander": "^13.1.0"
   }
 }
