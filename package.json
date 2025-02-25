@@ -23,6 +23,7 @@
   },
   "homepage": "https://github.com/Qsppl/Remastered-Ymaps-2.1#readme",
   "devDependencies": {
+    "@types/babel__generator": "^7.6.8",
     "@types/node": "^22.13.5",
     "typescript": "^5.7.3"
   },
@@ -31,6 +32,10 @@
     "npm": "10"
   },
   "dependencies": {
-    "commander": "^13.1.0"
+    "@babel/generator": "^7.26.9",
+    "@babel/parser": "^7.26.9",
+    "@babel/types": "^7.26.9",
+    "commander": "^13.1.0",
+    "node-fetch-cache": "^5.0.2"
   }
 }
