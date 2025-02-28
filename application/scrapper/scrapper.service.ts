@@ -1,11 +1,12 @@
 import { parse } from '@babel/parser'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { extractIIFE } from './helpers/extract-iife.helper.mjs'
+import { isYmapsInitializator } from '../shared/is-ymaps-initializator.helper.js'
 import { type IYmapsInitializationData } from './ymaps-initialization-data.entity.js'
 import GeneratorModule from '@babel/generator'
 import { FileSystemCache, NodeFetchCache } from 'node-fetch-cache'
-import { shortDataPreview } from './helpers/short-data-preview.helper.js'
+import { shortDataPreview } from './short-data-preview.helper.js'
+import fs from 'fs/promises'
 const generate = GeneratorModule.default
 
 const featureHomeDirectory = path.dirname(fileURLToPath(import.meta.url))
@@ -13,40 +14,34 @@ const featureHomeDirectory = path.dirname(fileURLToPath(import.meta.url))
 export class ScrapperService {
     static readonly libraryInitializatorUrl = 'https://api-maps.yandex.ru/2.1/'
 
-    static readonly cacheDirectory = path.join(featureHomeDirectory, '/downloads')
+    static readonly cacheDirectory = path.join(featureHomeDirectory, './cache')
 
-    static async searchYmapsSources() {
+    static async searchYmapsSourcecode() {
         console.log('\nНачинаем загрузку скрипта инициализации Яндекс.Карт...')
+        const initializationScript = await this.#downloadInitializationScript()
+        console.log(`Скрипт инициализации успешно загружен (${initializationScript.length} байт)`)
 
-        const script = await this.#downloadInitScript()
+        const initializationData = this.#extractInitializationData(initializationScript)
+        console.log(`\nДанные инициализации прочитаны (${JSON.stringify(initializationData).length} байт)`)
 
-        console.log(`Скрипт инициализации успешно загружен (${script.length} байт)`)
-
-        const initData = this.#extractInitData(script)
-
-        console.log('\nДанные инициализации:')
-        console.log(shortDataPreview(initData))
-
-        const bundleUrls = this.#getBundleUrls(initData)
-
+        const bundleUrls = this.#getBundleUrls(initializationData)
         console.log('\nСписок URL бандлов исходного кода Яндекс.Карт:')
         for (const url of bundleUrls) console.log(url.toString())
 
         console.log('\nНачинаем загрузку бандлов исходного кода Яндекс.Карт...')
-
         const bundles = await this.#downloadAllBundles(bundleUrls)
-
         console.log(`Все бандлы загружены`)
 
-        const librarySources = this.#buildSourcesFromBundles(bundles)
-
+        const librarySources = this.#buildSourcecodeFromBundles(initializationScript, ...bundles)
         console.log(`\nИсходный код библиотеки Яндекс.Карты:`)
+        console.log("-----------------------------------------------------------------")
         console.log(shortDataPreview(librarySources))
+        console.log("-----------------------------------------------------------------")
 
         return librarySources
     }
 
-    static async #downloadInitScript(): Promise<string> {
+    static async #downloadInitializationScript(): Promise<string> {
         try {
             const url = new URL(this.libraryInitializatorUrl)
             url.searchParams.append('mode', 'debug')
@@ -61,26 +56,30 @@ export class ScrapperService {
         }
     }
 
-    static #extractInitData(script: string): IYmapsInitializationData {
+    static #extractInitializationData(script: string): IYmapsInitializationData {
         try {
             console.log('\nПарсим скрипт инициализации для извлечения конфигурации...')
 
             const program = parse(script, { sourceType: 'script' }).program
-            const IIFE = extractIIFE(program)
 
-            if (IIFE) {
-                console.log("\nСкрипт является IIFE, извлекаем конфигурацию из первого аргумента вызова функции...")
+            if (program.body.length !== 1) throw new Error("Unknown initiailization script signaure")
 
-                if (IIFE.arguments.length !== 1) throw new Error(`Unexpected IIFE arguments number. Expected 1 argument, but find ${IIFE.arguments.length}`)
+            const singleStatement = program.body[0]
 
-                const argument = IIFE.arguments[0]
 
-                if (argument.type !== "ObjectExpression") throw new Error(`Expect data in first IIFE argument, but find ${argument.type}`)
+            if (!isYmapsInitializator(singleStatement)) throw new Error("Unknown initiailization script signaure")
 
-                return JSON.parse(generate(argument).code)
-            }
+            const initializationIIFE = singleStatement.expression
 
-            throw new Error("Unknown initiailization script signaure")
+            console.log("\nОбнаружен IIFE инициализатор. Извлекаем конфигурацию...")
+
+            if (initializationIIFE.arguments.length !== 1) throw new Error(`Unexpected IIFE arguments number. Expected 1 argument, but find ${initializationIIFE.arguments.length}`)
+
+            const argument = initializationIIFE.arguments[0]
+
+            if (argument.type !== "ObjectExpression") throw new Error(`Expect data in first IIFE argument, but find ${argument.type}`)
+
+            return JSON.parse(generate(argument).code)
         } catch (error) {
             console.error('Не удалось извлечь данные инициализации:', error)
             throw error
@@ -123,20 +122,30 @@ export class ScrapperService {
             cache: new FileSystemCache({ cacheDirectory: this.cacheDirectory }),
         })
 
-        const response = await fetch(url.toString())
+        let text
 
-        if (!response.ok) throw new Error(`Ошибка HTTP! статус: ${response.status}`)
+        try {
+            const response = await fetch(url.toString())
+            if (!response.ok) throw new Error(`Ошибка HTTP! статус: ${response.status}`)
 
-        const text = await response.text()
+            text = await response.text()
+        } catch (error) {
+            console.log("Ошибка загрузки скрипта через кэширующую системму, запуск резервного механизма...")
 
-        if (!text.includes('function') && !text.includes('var') && !text.includes('const')) {
-            throw new Error('Ответ не похож на JavaScript файл')
+            console.log("Сбрасываем кэш и пробуем выполнить запрос заново")
+            await fs.rm(this.cacheDirectory, { recursive: true, force: true })
+
+            const response = await fetch(url.toString())
+            if (!response.ok) throw new Error(`Ошибка HTTP! статус: ${response.status}`)
+
+            text = await response.text()
         }
 
+        if (!text.includes('function') && !text.includes('var') && !text.includes('const')) throw new Error('Ответ не похож на JavaScript файл')
         return text
     }
 
-    static #buildSourcesFromBundles(bundles: string[]) {
-        return bundles.join("\n\n\n")
+    static #buildSourcecodeFromBundles(...bundles: string[]) {
+        return bundles.join(";\n\n\n")
     }
 }

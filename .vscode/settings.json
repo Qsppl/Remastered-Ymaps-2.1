@@ -8,8 +8,5 @@
         "path": "C:/Windows/System32/cmd.exe"
     },
     "explorer.fileNesting.enabled": true,
-    "explorer.fileNesting.expand": false,
-    "explorer.fileNesting.patterns": {
-        "*.mts": "${capture}.mts, ${capture}.mjs"
-    }
+    "explorer.fileNesting.expand": false
 }

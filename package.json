@@ -2,11 +2,11 @@
   "name": "remastered-ymaps-2.1",
   "version": "0.0.0",
   "description": "A set of solutions for working with the YMAPS library.",
-  "main": "application/cli/cli.mjs",
+  "main": "application/cli/cli.js",
   "type": "module",
   "scripts": {
-    "main": "node application/cli/cli.mjs",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "main": "node application/cli/cli.js",
+    "sandbox": "node application/sandbox.js"
   },
   "repository": {
     "type": "git",
@@ -24,6 +24,7 @@
   "homepage": "https://github.com/Qsppl/Remastered-Ymaps-2.1#readme",
   "devDependencies": {
     "@types/babel__generator": "^7.6.8",
+    "@types/babel__traverse": "^7.20.6",
     "@types/node": "^22.13.5",
     "typescript": "^5.7.3"
   },
@@ -34,8 +35,12 @@
   "dependencies": {
     "@babel/generator": "^7.26.9",
     "@babel/parser": "^7.26.9",
+    "@babel/traverse": "^7.26.9",
     "@babel/types": "^7.26.9",
     "commander": "^13.1.0",
     "node-fetch-cache": "^5.0.2"
+  },
+  "imports": {
+    "#root/*.js": "./application/*.js"
   }
 }
